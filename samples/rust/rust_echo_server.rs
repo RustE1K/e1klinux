@@ -43,6 +43,7 @@ struct RustEchoServer {
 
 impl kernel::Module for RustEchoServer {
     fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
+        pr_info!("Hello from Rust echo server\n");
         let handle = WqExecutor::try_new(kernel::workqueue::system())?;
         start_listener(handle.executor())?;
         Ok(Self {

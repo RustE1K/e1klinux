@@ -10,6 +10,11 @@ menuconfig SAMPLES_RUST
 
 if SAMPLES_RUST
 
+config RUST_E1000
+	tristate "Rust E1000"
+	help
+	  Rust E1000 written by Fujita
+
 config SAMPLE_RUST_MINIMAL
 	tristate "Minimal"
 	help
