@@ -108,7 +108,7 @@ fn dummy_change_carrier(dev: *mut bindings::net_device, new_carrier: bool) -> i3
 // };
 
 const dummy_netdev_ops: bindings::net_device_ops = bindings::net_device_ops {
-    ndo_init: dummy_dev_init,
+    ndo_init: Some(dummy_dev_init),
     ndo_uninit: dummy_dev_uninit,
     ndo_start_xmit: dummy_xmit,
     // Ignore validate
