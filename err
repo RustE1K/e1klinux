@@ -1,0 +1,214 @@
+error: proc macro panicked
+   --> samples/rust/rust_dummy.rs:446:1
+    |
+446 | / module! {
+447 | |     type: Dummy,
+448 | |     name: "rust_dummy",
+449 | |     author: "Jesse Wei"
+450 | |     description: "Rust dummy network driver",
+451 | |     license: "GPL v2",
+452 | | }
+    | |_^
+    |
+    = help: message: Expected Punct
+
+error[E0425]: cannot find value `ethtool_op_get_ts_info` in crate `bindings`
+   --> samples/rust/rust_dummy.rs:213:28
+    |
+213 |     get_ts_info: bindings::ethtool_op_get_ts_info,
+    |                            ^^^^^^^^^^^^^^^^^^^^^^ not found in `bindings`
+
+error[E0425]: cannot find function `eth_hw_addr_random` in crate `bindings`
+   --> samples/rust/rust_dummy.rs:257:19
+    |
+257 |         bindings::eth_hw_addr_random(dev);
+    |                   ^^^^^^^^^^^^^^^^^^ help: a function with a similar name exists: `eth_hw_addr_set`
+    |
+   ::: /home/jesse/Documents/e1klinux/rust/bindings/bindings_helpers_generated.rs:520:5
+    |
+520 |     pub fn eth_hw_addr_set(dev: *mut net_device, addr: *const u8_);
+    |     --------------------------------------------------------------- similarly named function `eth_hw_addr_set` defined here
+
+error[E0425]: cannot find function `alloc_netdev` in crate `bindings`
+     --> samples/rust/rust_dummy.rs:358:40
+      |
+358   |   ...gs::alloc_netdev(0, "dummy%d", bindings::NET_NAME_ENUM, dummy_setup) };
+      |          ^^^^^^^^^^^^ help: a function with a similar name exists: `alloc_netdev_mqs`
+      |
+     ::: /home/jesse/Documents/e1klinux/rust/bindings/bindings_generated.rs:66358:5
+      |
+66358 | /     pub fn alloc_netdev_mqs(
+66359 | |         sizeof_priv: core::ffi::c_int,
+66360 | |         name: *const core::ffi::c_char,
+66361 | |         name_assign_type: core::ffi::c_uchar,
+...     |
+66364 | |         rxqs: core::ffi::c_uint,
+66365 | |     ) -> *mut net_device;
+      | |_________________________- similarly named function `alloc_netdev_mqs` defined here
+
+warning: unused import: `core::ffi::c_void`
+  --> samples/rust/rust_dummy.rs:11:5
+   |
+11 | use core::ffi::c_void;
+   |     ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:112:20
+    |
+112 |     ndo_init: Some(dummy_dev_init),
+    |                    ^^^^^^^^^^^^^^ expected "C" fn, found "Rust" fn
+    |
+    = note: expected fn pointer `unsafe extern "C" fn(_) -> _`
+                  found fn item `fn(_) -> _ {dummy_dev_init}`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:113:17
+    |
+113 |     ndo_uninit: dummy_dev_uninit,
+    |                 ^^^^^^^^^^^^^^^^ expected enum `Option`, found fn item
+    |
+    = note: expected enum `Option<unsafe extern "C" fn(*mut net_device)>`
+            found fn item `fn(*mut net_device) {dummy_dev_uninit}`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:114:21
+    |
+114 |     ndo_start_xmit: dummy_xmit,
+    |                     ^^^^^^^^^^ expected enum `Option`, found fn item
+    |
+    = note: expected enum `Option<unsafe extern "C" fn(*mut sk_buff, *mut net_device) -> i32>`
+            found fn item `fn(*mut sk_buff, *mut net_device) -> i32 {dummy_xmit}`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:117:22
+    |
+117 |     ndo_set_rx_mode: set_multicast_list,
+    |                      ^^^^^^^^^^^^^^^^^^ expected enum `Option`, found fn item
+    |
+    = note: expected enum `Option<unsafe extern "C" fn(*mut net_device)>`
+            found fn item `fn(*mut net_device) {set_multicast_list}`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:121:22
+    |
+121 |     ndo_get_stats64: dummy_get_stats64,
+    |                      ^^^^^^^^^^^^^^^^^ expected enum `Option`, found fn item
+    |
+    = note: expected enum `Option<unsafe extern "C" fn(*mut net_device, *mut rtnl_link_stats64)>`
+            found fn item `fn(*mut net_device, *mut rtnl_link_stats64) {dummy_get_stats64}`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:122:25
+    |
+122 |     ndo_change_carrier: dummy_change_carrier,
+    |                         ^^^^^^^^^^^^^^^^^^^^ expected enum `Option`, found fn item
+    |
+    = note: expected enum `Option<unsafe extern "C" fn(*mut net_device, bool) -> i32>`
+            found fn item `fn(*mut net_device, bool) -> i32 {dummy_change_carrier}`
+
+error[E0560]: struct `ethtool_ops` has no field named `get_ts_info`
+   --> samples/rust/rust_dummy.rs:213:5
+    |
+213 |     get_ts_info: bindings::ethtool_op_get_ts_info,
+    |     ^^^^^^^^^^^ `ethtool_ops` does not have this field
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:301:12
+    |
+301 |     setup: dummy_setup,
+    |            ^^^^^^^^^^^ expected enum `Option`, found fn item
+    |
+    = note: expected enum `Option<unsafe extern "C" fn(*mut net_device)>`
+            found fn item `fn(*mut net_device) {dummy_setup}`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:318:11
+    |
+318 |     kind: None,
+    |           ^^^^ expected *-ptr, found enum `Option`
+    |
+    = note: expected raw pointer `*const i8`
+                      found enum `Option<_>`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:319:11
+    |
+319 |     list: None,
+    |           ^^^^ expected struct `list_head`, found enum `Option`
+    |
+    = note: expected struct `list_head`
+                 found enum `Option<_>`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:320:14
+    |
+320 |     maxtype: None,
+    |              ^^^^ expected `u32`, found enum `Option`
+    |
+    = note: expected type `u32`
+               found enum `Option<_>`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:321:19
+    |
+321 |     netns_refund: None,
+    |                   ^^^^ expected `bool`, found enum `Option`
+    |
+    = note: expected type `bool`
+               found enum `Option<_>`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:323:13
+    |
+323 |     policy: None,
+    |             ^^^^ expected *-ptr, found enum `Option`
+    |
+    = note: expected raw pointer `*const nla_policy`
+                      found enum `Option<_>`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:324:16
+    |
+324 |     priv_size: None,
+    |                ^^^^ expected `usize`, found enum `Option`
+    |
+    = note: expected type `usize`
+               found enum `Option<_>`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:326:20
+    |
+326 |     slave_maxtype: None,
+    |                    ^^^^ expected `u32`, found enum `Option`
+    |
+    = note: expected type `u32`
+               found enum `Option<_>`
+
+error[E0308]: mismatched types
+   --> samples/rust/rust_dummy.rs:327:19
+    |
+327 |     slave_policy: None,
+    |                   ^^^^ expected *-ptr, found enum `Option`
+    |
+    = note: expected raw pointer `*const nla_policy`
+                      found enum `Option<_>`
+
+error[E0308]: mismatched types
+  --> samples/rust/rust_dummy.rs:76:31
+   |
+76 |         bindings::free_percpu((*dev).stats);
+   |                               ^^^^^^^^^^^^ expected *-ptr, found struct `net_device_stats`
+   |
+   = note: expected raw pointer `*mut c_void`
+                   found struct `net_device_stats`
+
+error: aborting due to 21 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0308, E0425, E0560.
+For more information about an error, try `rustc --explain E0308`.
+make[3]: *** [scripts/Makefile.build:307: samples/rust/rust_dummy.o] Error 1
+make[2]: *** [scripts/Makefile.build:500: samples/rust] Error 2
+make[1]: *** [scripts/Makefile.build:500: samples] Error 2
+make: *** [Makefile:1992: .] Error 2

@@ -42,9 +42,9 @@ fn dummy_get_stats64(dev: *mut bindings::net_device, stats: *mut bindings::rtnl_
 // 	return NETDEV_TX_OK;
 // }
 
-// TODO: these 2 functions don't exist in bindgen
 fn dummy_xmit(skb: *mut bindings::sk_buff, dev: *mut bindings::net_device) -> i32 {
     unsafe {
+        // TODO: these 2 functions don't exist in bindgen
         // bindings::dev_lstats_add(dev, (*skb).len);
         // bindings::skb_tx_timestamp(skb);
         bindings::__kfree_skb(skb);
@@ -62,6 +62,7 @@ fn dummy_xmit(skb: *mut bindings::sk_buff, dev: *mut bindings::net_device) -> i3
 // }
 
 fn dummy_dev_init(dev: *mut bindings::net_device) -> i32 {
+    // TODO: netdev_alloc_pcpu_stats not in bindgen, ignoring
     return 0;
 }
 
@@ -207,6 +208,7 @@ const dummy_netdev_ops: bindings::net_device_ops = bindings::net_device_ops {
 // 	.get_ts_info		= ethtool_op_get_ts_info,
 // };
 
+// TODO: Might be unnecessary
 const dummy_ethtoolops: bindings::ethtool_ops = bindings::ethtool_ops {
     get_ts_info: bindings::ethtool_op_get_ts_info,
 };

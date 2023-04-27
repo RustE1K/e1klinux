@@ -3,39 +3,56 @@ use kernel::bindings;
 
 pub(crate) struct DeviceOperationsVtable<T>(marker::PhantomData<T>);
 
+// A trait for the device operations of the dummy driver
+// These functions are implemented in rust_dummy.rs
 pub(crate) trait DeviceOperations {
-    fn open(netdev: *mut bindings::net_device) -> i32;
-    fn xmit(skb: *mut bindings::sk_buff, etdev: *mut bindings::net_device) -> i32;
-    fn set_rx_mode(netdev: *mut bindings::net_device);
+    fn dummy_dev_init(dev: *mut bindings::net_device) -> i32;
+    fn dummy_dev_uninit(dev: *mut bindings::net_device);
+    fn dummy_xmit(skb: *mut bindings::sk_buff, dev: *mut bindings::net_device) -> i32;
+    fn set_multicast_list(dev: *mut bindings::net_device);
+    fn dummy_get_stats64(dev: *mut bindings::net_device, stats: *mut bindings::rtnl_link_stats64);
+    fn dummy_change_carrier(dev: *mut bindings::net_device, new_carrier: bool) -> i32;
 }
 
+// Wrap the Rust functions above in external C functions because bindings::net_device_ops expects external "C" functions
 impl<T: DeviceOperations> DeviceOperationsVtable<T> {
-    unsafe extern "C" fn open_callback(netdev: *mut bindings::net_device) -> core::ffi::c_int {
-        T::open(netdev)
+    unsafe extern "C" fn init_callback(dev: *mut bindings::net_device) -> core::ffi::c_int {
+        T::dummy_dev_init(dev)
     }
 
-    unsafe extern "C" fn xmit_callback(
-        skb: *mut bindings::sk_buff,
-        netdev: *mut bindings::net_device,
-    ) -> core::ffi::c_int {
-        T::xmit(skb, netdev)
+    unsafe extern "C" fn uninit_callback(dev: *mut bindings::net_device) {
+        T::dummy_dev_uninit(dev)
     }
 
-    unsafe extern "C" fn set_rx_mode_callback(netdev: *mut bindings::net_device) {
-        T::set_rx_mode(netdev)
+    unsafe extern "C" fn xmit_callback(skb: *mut bindings::sk_buff, dev: *mut bindings::net_device) -> core::ffi::c_int {
+        T::dummy_xmit(skb, dev)
+    }
+
+    unsafe extern "C" fn set_multicast_list_callback(dev: *mut bindings::net_device) {
+        T::set_multicast_list(dev)
+    }
+
+    unsafe extern "C" fn get_stats64_callback(dev: *mut bindings::net_device, stats: *mut bindings::rtnl_link_stats64) {
+        T::dummy_get_stats64(dev, stats)
+    }
+
+    unsafe extern "C" fn change_carrier_callback(dev: *mut bindings::net_device, new_carrier: bool) -> core::ffi::c_int {
+        T::dummy_change_carrier(dev, new_carrier)
     }
 
     const VTABLE: bindings::net_device_ops = bindings::net_device_ops {
-        ndo_init: None,
-        ndo_uninit: None,
-        ndo_open: Some(Self::open_callback),
+        ndo_init: Some(Self::init_callback),
+        ndo_uninit: Some(Self::uninit_callback),
+        ndo_open: None,
         ndo_stop: None,
         ndo_start_xmit: Some(Self::xmit_callback),
         ndo_features_check: None,
         ndo_select_queue: None,
         ndo_change_rx_flags: None,
-        ndo_set_rx_mode: Some(Self::set_rx_mode_callback),
+        ndo_set_rx_mode: Some(Self::set_multicast_list),
+        // TODO: ignored
         ndo_set_mac_address: None,
+        // TODO: ignored
         ndo_validate_addr: None,
         ndo_do_ioctl: None,
         ndo_eth_ioctl: None,
@@ -46,7 +63,7 @@ impl<T: DeviceOperations> DeviceOperationsVtable<T> {
         ndo_change_mtu: None,
         ndo_neigh_setup: None,
         ndo_tx_timeout: None,
-        ndo_get_stats64: None,
+        ndo_get_stats64: Some(Self::get_stats64_callback),
         ndo_has_offload_stats: None,
         ndo_get_offload_stats: None,
         ndo_get_stats: None,
@@ -93,7 +110,7 @@ impl<T: DeviceOperations> DeviceOperationsVtable<T> {
         ndo_bridge_setlink: None,
         ndo_bridge_getlink: None,
         ndo_bridge_dellink: None,
-        ndo_change_carrier: None,
+        ndo_change_carrier: Some(Self::change_carrier_callback),
         ndo_get_phys_port_id: None,
         ndo_get_port_parent_id: None,
         ndo_get_phys_port_name: None,
@@ -119,7 +136,12 @@ impl<T: DeviceOperations> DeviceOperationsVtable<T> {
     }
 }
 
-pub(crate) struct EthToolOperationsVtable {}
+pub(crate) struct EthToolOperationsVtable<T>(marker::PhantomData<T>);
+
+// A trait for the ethtool operations of the dummy driver
+pub(crate) trait DeviceOperations {
+}
+
 
 impl EthToolOperationsVtable {
     const VTABLE: bindings::ethtool_ops = bindings::ethtool_ops {
@@ -170,7 +192,7 @@ impl EthToolOperationsVtable {
         get_dump_flag: None,
         get_dump_data: None,
         set_dump: None,
-        get_ts_info: None,
+        get_ts_info: Some(bindings::ethtool_op_get_ts_info),
         get_module_info: None,
         get_module_eeprom: None,
         get_eee: None,
@@ -200,3 +222,4 @@ impl EthToolOperationsVtable {
         &Self::VTABLE
     }
 }
+ 

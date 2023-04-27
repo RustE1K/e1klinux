@@ -40,6 +40,18 @@
 #include <linux/uio.h>
 #include <uapi/linux/android/binder.h>
 
+// Extra stuff for dummy.c
+
+#include <linux/kernel.h>
+#include <linux/etherdevice.h>
+#include <linux/ethtool.h>
+#include <linux/init.h>
+#include <linux/moduleparam.h>
+#include <linux/rtnetlink.h>
+#include <linux/net_tstamp.h>
+#include <net/rtnetlink.h>
+#include <linux/u64_stats_sync.h>
+
 /* `bindgen` gets confused at certain things. */
 const gfp_t BINDINGS_GFP_KERNEL = GFP_KERNEL;
 const gfp_t BINDINGS___GFP_ZERO = __GFP_ZERO;
