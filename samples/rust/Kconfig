@@ -15,6 +15,12 @@ config RUST_E1000
 	help
 	  Rust E1000 written by Fujita
 
+config RUST_DUMMY
+	tristate "Rust dummy net device"
+	help
+	  Rust dummy net device. Original C version can be found in
+	  "torvalds linux drivers net dummy"
+
 config SAMPLE_RUST_MINIMAL
 	tristate "Minimal"
 	help
