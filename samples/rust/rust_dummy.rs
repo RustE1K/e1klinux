@@ -17,6 +17,10 @@ use rust_dummy_defs::*;
 // const DRV_NAME: &str = "dummy";
 const numdummies: i32 = 1;
 
+impl net::DeviceOperations for Dummy {
+    
+}
+
 /* fake multicast ability */
 fn set_multicast_list(dev: *mut bindings::net_device) {
 }
@@ -415,7 +419,7 @@ impl kernel::Module for Dummy {
                 // Can't return err here, return type is Result<Self>
             }
 
-            // Original code said for (int i = 0; i < numdummies && !err; i++)
+            // Original code is (int i = 0; i < numdummies && !err; i++)
             for i in 0..numdummies {
                 if err != 0 {
                     break;
@@ -446,7 +450,7 @@ impl kernel::Module for Dummy {
 module! {
     type: Dummy,
     name: "rust_dummy",
-    author: "Jesse Wei"
+    author: "Jesse Wei and Madison Lester"
     description: "Rust dummy network driver",
     license: "GPL v2",
 }
