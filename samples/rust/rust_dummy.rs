@@ -1,5 +1,7 @@
 #[allow(unused)]
 
+mod lib;
+
 use kernel::{
     bindings,
     c_str,
@@ -12,7 +14,7 @@ use core::ffi::c_char;
 use core::ffi::c_void;
 mod rust_dummy_defs;
 use rust_dummy_defs::*;
-use rand::Rng;
+use core::mem;
 
 
 // #define DRV_NAME         "dummy"
@@ -345,29 +347,35 @@ const dummy_ethtoolops: bindings::ethtool_ops = bindings::ethtool_ops {
 // }
 
 // https://elixir.free-electrons.com/linux/v4.7/source/include/linux/etherdevice.h#L221
-// #[inline]
-// fn eth_random_addr(addr: *mut u8) {
-//     bindings::get_random_bytes(addr as *mut c_void, ETH_ALEN);
-//     *addr = *addr & 0xFE;           // Clear multicast bit
-//     *addr = *addr | 0x02;           // Set local assignment bit (IEEE802)
+// static inline void eth_random_addr(u8 *addr)
+// {
+// 	get_random_bytes(addr, ETH_ALEN);
+// 	addr[0] &= 0xfe;	/* clear multicast bit */
+// 	addr[0] |= 0x02;	/* set local assignment bit (IEEE802) */
 // }
+#[inline]
+fn eth_random_addr(addr: *mut u8) {
+    unsafe {
+        bindings::get_random_bytes(addr as *mut c_void, ETH_ALEN);
+        *addr = *addr & 0xFE;           // Clear multicast bit
+        *addr = *addr | 0x02;           // Set local assignment bit (IEEE802)
+    }
+}
 
 // https://elixir.bootlin.com/linux/v4.9/source/include/linux/etherdevice.h#L261
+// static inline void eth_hw_addr_random(struct net_device *dev)
+// {
+// 	dev->addr_assign_type = NET_ADDR_RANDOM;
+// 	eth_random_addr(dev->dev_addr);
+// }
 #[inline]
 fn eth_hw_addr_random(dev: *mut bindings::net_device) {
-    (*dev).addr_assign_type = NET_ADDR_RANDOM;
-    let mut rng = rand::thread_rng();
-    // eth_random_addr fills up ETH_ALEN (i.e., 6) bytes starting at address given
-    // Generate all 8 bytes
-    let lower_2_bytes: u8 = *(*dev).dev_addr & 0x03;
-    *(*dev).dev_addr = rng.gen::<u8>();
-    // Shift left 2 bytes, leaving 6 random bytes in upper 6 bytes
-    *(*dev).dev_addr = (*(*dev).dev_addr) << 8;
-    *(*dev).dev_addr = (*(*dev).dev_addr) & 0x3;            // Clear lower 2 bytes
-    *(*dev).dev_addr = (*(*dev).dev_addr) | lower_2_bytes;  // Reset lower 2 bytes to what they were
-
-    *(*dev).dev_addr = (*(*dev).dev_addr) & 0xFE;           // Clear multicast bit
-    *(*dev).dev_addr = (*(*dev).dev_addr) | 0x02;           // Set local assignment bit (IEEE802)
+    unsafe {
+        (*dev).addr_assign_type = NET_ADDR_RANDOM;
+        let ptr: *const u8 = (*dev).dev_addr;
+        let mutable_ptr: *mut u8 = ptr as *mut u8;
+        eth_random_addr(mutable_ptr);
+    }
 }
 
 fn dummy_setup(dev: *mut bindings::net_device) {
@@ -432,17 +440,16 @@ unsafe extern "C" fn setup_callback(dev: *mut bindings::net_device) {
 // 	.validate	= dummy_validate,
 // };
 
-// TODO: not sure about read_mostly in the original C
+// Rust has no counterpart for __read_mostly in the original code
 // Skip validate because nla_len does not exist in bindings, and validate is not an important function
-
 const lhead: bindings::list_head = bindings::list_head {
     next: 0 as *mut bindings::list_head,
     prev: 0 as *mut bindings::list_head,
 };
 
 // Do NOT try to initialize without default(), there are many weird fields
-const policy: bindings::nla_policy = Default::default();
-const mut_policy: *mut bindings::nla_policy = &mut policy;
+// const policy: bindings::nla_policy = Default::default();
+const policy: bindings::nla_policy = unsafe {mem::zeroed()};
 
 const dummy_link_ops: bindings::rtnl_link_ops = bindings::rtnl_link_ops {
     kind: DRV_NAME,
@@ -468,11 +475,11 @@ const dummy_link_ops: bindings::rtnl_link_ops = bindings::rtnl_link_ops {
     maxtype: 0,
     netns_refund: false,
     newlink: None,
-    policy: mut_policy,
+    policy: &policy,
     priv_size: 0,
     slave_changelink: None,
     slave_maxtype: 0,
-    slave_policy: mut_policy,
+    slave_policy: &policy,
     validate: None,
 };
 
