@@ -12,6 +12,7 @@ use core::ffi::c_char;
 use core::ffi::c_void;
 mod rust_dummy_defs;
 use rust_dummy_defs::*;
+use rand::Rng;
 
 
 // #define DRV_NAME         "dummy"
@@ -344,19 +345,28 @@ const dummy_ethtoolops: bindings::ethtool_ops = bindings::ethtool_ops {
 // }
 
 // https://elixir.free-electrons.com/linux/v4.7/source/include/linux/etherdevice.h#L221
-#[inline]
-fn eth_random_addr(addr: *mut u8) {
-    bindings::get_random_bytes(addr as *mut c_void, ETH_ALEN);
-    *addr = *addr & 0xFE;           // Clear multicast bit
-    *addr = *addr | 0x02;           // Set local assignment bit (IEEE802)
-}
+// #[inline]
+// fn eth_random_addr(addr: *mut u8) {
+//     bindings::get_random_bytes(addr as *mut c_void, ETH_ALEN);
+//     *addr = *addr & 0xFE;           // Clear multicast bit
+//     *addr = *addr | 0x02;           // Set local assignment bit (IEEE802)
+// }
 
 // https://elixir.bootlin.com/linux/v4.9/source/include/linux/etherdevice.h#L261
 #[inline]
 fn eth_hw_addr_random(dev: *mut bindings::net_device) {
     (*dev).addr_assign_type = NET_ADDR_RANDOM;
-    let mut byte = (*dev).dev_addr;
-    eth_random_addr(byte);
+    let mut rng = rand::thread_rng();
+    // eth_random_addr fills up ETH_ALEN (i.e., 6) bytes starting at address given
+    // Generate all 8 bytes
+    let lower_2_bytes: u8 = *(*dev).dev_addr & 0x03;
+    *(*dev).dev_addr = rng.gen::<u8>();
+    // Shift left 2 bytes, leaving 6 random bytes in upper 6 bytes
+    *(*dev).dev_addr = (*(*dev).dev_addr) << 8;
+    *(*dev).dev_addr = (*(*dev).dev_addr) | lower_2_bytes;
+
+    *(*dev).dev_addr = (*(*dev).dev_addr) & 0xFE;       // Clear multicast bit
+    *(*dev).dev_addr = (*(*dev).dev_addr) | 0x02;       // Set local assignment bit (IEEE802)
 }
 
 fn dummy_setup(dev: *mut bindings::net_device) {
