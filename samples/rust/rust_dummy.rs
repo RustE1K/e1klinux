@@ -363,10 +363,11 @@ fn eth_hw_addr_random(dev: *mut bindings::net_device) {
     *(*dev).dev_addr = rng.gen::<u8>();
     // Shift left 2 bytes, leaving 6 random bytes in upper 6 bytes
     *(*dev).dev_addr = (*(*dev).dev_addr) << 8;
-    *(*dev).dev_addr = (*(*dev).dev_addr) | lower_2_bytes;
+    *(*dev).dev_addr = (*(*dev).dev_addr) & 0x3;            // Clear lower 2 bytes
+    *(*dev).dev_addr = (*(*dev).dev_addr) | lower_2_bytes;  // Reset lower 2 bytes to what they were
 
-    *(*dev).dev_addr = (*(*dev).dev_addr) & 0xFE;       // Clear multicast bit
-    *(*dev).dev_addr = (*(*dev).dev_addr) | 0x02;       // Set local assignment bit (IEEE802)
+    *(*dev).dev_addr = (*(*dev).dev_addr) & 0xFE;           // Clear multicast bit
+    *(*dev).dev_addr = (*(*dev).dev_addr) | 0x02;           // Set local assignment bit (IEEE802)
 }
 
 fn dummy_setup(dev: *mut bindings::net_device) {
