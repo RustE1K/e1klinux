@@ -83,7 +83,6 @@ fn dummy_dev_init(dev: *mut bindings::net_device) -> i32 {
 
 
 // Skipped
-
 // fn dummy_dev_uninit(dev: *mut bindings::net_device) {
 //     unsafe {
             // I can get to lstats, but c_void is expected as the parameter here
@@ -115,6 +114,7 @@ unsafe extern "C" fn init_callback(dev: *mut bindings::net_device) -> core::ffi:
     dummy_dev_init(dev)
 }
 
+// Not necessary
 // unsafe extern "C" fn uninit_callback(dev: *mut bindings::net_device) {
 //     dummy_dev_uninit(dev)
 // }
@@ -158,10 +158,6 @@ const dummy_netdev_ops: bindings::net_device_ops = bindings::net_device_ops {
     ndo_set_mac_address: None,
     ndo_get_stats64: Some(get_stats64_callback),
     ndo_change_carrier: Some(change_carrier_callback),
-
-    // Get compile errors if these aren't here
-    // This list is taken from https://github.com/fujita/rust-e1000/blob/master/ops.rs#L30
-
     ndo_open: None,
     ndo_stop: None,
     ndo_features_check: None,
@@ -246,7 +242,6 @@ const dummy_netdev_ops: bindings::net_device_ops = bindings::net_device_ops {
 // 	.get_ts_info		= ethtool_op_get_ts_info,
 // };
 
-// TODO: Might be unnecessary
 const dummy_ethtoolops: bindings::ethtool_ops = bindings::ethtool_ops {
     get_ts_info: Some(bindings::ethtool_op_get_ts_info),
     _bitfield_1: bindings::__BindgenBitfieldUnit::new([0; 1]),
@@ -440,22 +435,23 @@ unsafe extern "C" fn setup_callback(dev: *mut bindings::net_device) {
 // 	.validate	= dummy_validate,
 // };
 
-// Rust has no counterpart for __read_mostly in the original code
+// Rust has no counterpart for __read_mostly from the original code
 // Skip validate because nla_len does not exist in bindings, and validate is not an important function
 const lhead: bindings::list_head = bindings::list_head {
     next: 0 as *mut bindings::list_head,
     prev: 0 as *mut bindings::list_head,
 };
 
-// Do NOT try to initialize without default(), there are many weird fields
+// Do NOT try to initialize bindings::nla_policy without using default(), there are many weird fields.
+// If we were to not have deleted policy and slave_policy in the struct below and in rust/bindings/bindings_generated.rs, this is how we
+// might approach creating an nla_policy struct.
+// However, this does not work because Default::default() is a non-const function, cannot be made into a const function, 
 // const policy: bindings::nla_policy = Default::default();
-const policy: bindings::nla_policy = unsafe {mem::zeroed()};
 
 const dummy_link_ops: bindings::rtnl_link_ops = bindings::rtnl_link_ops {
     kind: DRV_NAME,
     setup: Some(setup_callback),
-    // Ignore validate because nla_len does not exist in bindings
-    // Also, validate isn't important
+    // Ignore validate because validate isn't important, and also nla_len does not exist in bindings
     // validate: dummy_validate,
     alloc: None,
     changelink: None,
@@ -475,11 +471,9 @@ const dummy_link_ops: bindings::rtnl_link_ops = bindings::rtnl_link_ops {
     maxtype: 0,
     netns_refund: false,
     newlink: None,
-    policy: &policy,
     priv_size: 0,
     slave_changelink: None,
     slave_maxtype: 0,
-    slave_policy: &policy,
     validate: None,
 };
 
@@ -562,6 +556,7 @@ struct Dummy {
 // Boilerplate from other Rust kernel modules (e.g. Rust e1000, NVMe driver)
 impl kernel::Module for Dummy {
     fn init(name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
+        pr_info!("Hello from Dummy net driver\n");
         let mut err = 0;
         unsafe {
             bindings::down_write(&mut bindings::pernet_ops_rwsem);
