@@ -19,3 +19,8 @@ pub(crate) const NETIF_F_HW_CSUM: u64 = 8;
 pub(crate) const NETIF_F_HIGHDMA: u64 = 32;
 pub(crate) const NETIF_F_LLTX: u64 = 4096;
 pub(crate) const NETIF_F_GSO_ENCAP_ALL: u64 = 264241152;
+
+// https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/if_ether.h#L32
+pub(crate) const ETH_ALEN: usize = 6;
+// https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/netdevice.h#L61
+pub(crate) const NET_ADDR_RANDOM: u8 = 1;      // Address is generated randomly

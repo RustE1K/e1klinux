@@ -8,22 +8,25 @@ use kernel::{
     net,
 };
 use kernel::prelude::*;
+use core::ffi::c_char;
 use core::ffi::c_void;
-
 mod rust_dummy_defs;
 use rust_dummy_defs::*;
 
+
 // #define DRV_NAME         "dummy"
-// const DRV_NAME: &str = "dummy";
+const temp: &'static [u8; 6] = b"dummy\x00";
+const DRV_NAME: *const c_char = temp.as_ptr() as *const c_char;
 const numdummies: i32 = 1;
 
-impl net::DeviceOperations for Dummy {
-    
-}
-
 /* fake multicast ability */
+// static void set_multicast_list(struct net_device *dev)
+// {
+// }
+
 fn set_multicast_list(dev: *mut bindings::net_device) {
 }
+
 
 // static void dummy_get_stats64(struct net_device *dev,
 // 			      struct rtnl_link_stats64 *stats)
@@ -75,11 +78,15 @@ fn dummy_dev_init(dev: *mut bindings::net_device) -> i32 {
 // 	free_percpu(dev->lstats);
 // }
 
-fn dummy_dev_uninit(dev: *mut bindings::net_device) {
-    unsafe {
-        bindings::free_percpu((*dev).stats);
-    }
-}
+
+// Skipped
+
+// fn dummy_dev_uninit(dev: *mut bindings::net_device) {
+//     unsafe {
+            // I can get to lstats, but c_void is expected as the parameter here
+//         bindings::free_percpu(((*dev).__bindgen_anon_1.lstats));
+//     }
+// }
 
 // static int dummy_change_carrier(struct net_device *dev, bool new_carrier)
 // {
@@ -101,6 +108,30 @@ fn dummy_change_carrier(dev: *mut bindings::net_device, new_carrier: bool) -> i3
     0
 }
 
+unsafe extern "C" fn init_callback(dev: *mut bindings::net_device) -> core::ffi::c_int {
+    dummy_dev_init(dev)
+}
+
+// unsafe extern "C" fn uninit_callback(dev: *mut bindings::net_device) {
+//     dummy_dev_uninit(dev)
+// }
+
+unsafe extern "C" fn xmit_callback(skb: *mut bindings::sk_buff, dev: *mut bindings::net_device) -> core::ffi::c_int {
+    dummy_xmit(skb, dev)
+}
+
+unsafe extern "C" fn set_multicast_list_callback(dev: *mut bindings::net_device) {
+    set_multicast_list(dev)
+}
+
+unsafe extern "C" fn get_stats64_callback(dev: *mut bindings::net_device, stats: *mut bindings::rtnl_link_stats64) {
+    dummy_get_stats64(dev, stats)
+}
+
+unsafe extern "C" fn change_carrier_callback(dev: *mut bindings::net_device, new_carrier: bool) -> core::ffi::c_int {
+    dummy_change_carrier(dev, new_carrier)
+}
+
 // static const struct net_device_ops dummy_netdev_ops = {
 // 	.ndo_init		= dummy_dev_init,
 // 	.ndo_uninit		= dummy_dev_uninit,
@@ -113,17 +144,17 @@ fn dummy_change_carrier(dev: *mut bindings::net_device, new_carrier: bool) -> i3
 // };
 
 const dummy_netdev_ops: bindings::net_device_ops = bindings::net_device_ops {
-    ndo_init: Some(dummy_dev_init),
-    ndo_uninit: dummy_dev_uninit,
-    ndo_start_xmit: dummy_xmit,
+    ndo_init: Some(init_callback),
+    ndo_uninit: None,
+    ndo_start_xmit: Some(xmit_callback),
     // Ignore validate
     ndo_validate_addr: None,
-    ndo_set_rx_mode: set_multicast_list,
+    ndo_set_rx_mode: Some(set_multicast_list_callback),
     // Ignore set mac address
     // ndo_set_mac_address: bindings::eth_mac_addr,
     ndo_set_mac_address: None,
-    ndo_get_stats64: dummy_get_stats64,
-    ndo_change_carrier: dummy_change_carrier,
+    ndo_get_stats64: Some(get_stats64_callback),
+    ndo_change_carrier: Some(change_carrier_callback),
 
     // Get compile errors if these aren't here
     // This list is taken from https://github.com/fujita/rust-e1000/blob/master/ops.rs#L30
@@ -214,7 +245,77 @@ const dummy_netdev_ops: bindings::net_device_ops = bindings::net_device_ops {
 
 // TODO: Might be unnecessary
 const dummy_ethtoolops: bindings::ethtool_ops = bindings::ethtool_ops {
-    get_ts_info: bindings::ethtool_op_get_ts_info,
+    get_ts_info: Some(bindings::ethtool_op_get_ts_info),
+    _bitfield_1: bindings::__BindgenBitfieldUnit::new([0; 1]),
+    supported_coalesce_params: 0,
+    supported_ring_params: 0,
+    get_drvinfo: None,
+    get_regs_len: None,
+    get_regs: None,
+    get_wol: None,
+    set_wol: None,
+    get_msglevel: None,
+    set_msglevel: None,
+    nway_reset: None,
+    get_link: None,
+    get_link_ext_state: None,
+    get_eeprom_len: None,
+    get_eeprom: None,
+    set_eeprom: None,
+    get_coalesce: None,
+    set_coalesce: None,
+    get_ringparam: None,
+    set_ringparam: None,
+    get_pause_stats: None,
+    get_pauseparam: None,
+    set_pauseparam: None,
+    self_test: None,
+    get_strings: None,
+    set_phys_id: None,
+    get_ethtool_stats: None,
+    begin: None,
+    complete: None,
+    get_priv_flags: None,
+    set_priv_flags: None,
+    get_sset_count: None,
+    get_rxnfc: None,
+    set_rxnfc: None,
+    flash_device: None,
+    reset: None,
+    get_rxfh_key_size: None,
+    get_rxfh_indir_size: None,
+    get_rxfh: None,
+    set_rxfh: None,
+    get_rxfh_context: None,
+    set_rxfh_context: None,
+    get_channels: None,
+    set_channels: None,
+    get_dump_flag: None,
+    get_dump_data: None,
+    set_dump: None,
+    get_module_info: None,
+    get_module_eeprom: None,
+    get_eee: None,
+    set_eee: None,
+    get_tunable: None,
+    set_tunable: None,
+    get_per_queue_coalesce: None,
+    set_per_queue_coalesce: None,
+    get_link_ksettings: None,
+    set_link_ksettings: None,
+    get_fec_stats: None,
+    get_fecparam: None,
+    set_fecparam: None,
+    get_ethtool_phy_stats: None,
+    get_phy_tunable: None,
+    set_phy_tunable: None,
+    get_module_eeprom_by_page: None,
+    get_eth_phy_stats: None,
+    get_eth_mac_stats: None,
+    get_eth_ctrl_stats: None,
+    get_rmon_stats: None,
+    get_module_power_mode: None,
+    set_module_power_mode: None,
 };
 
 // static void dummy_setup(struct net_device *dev)
@@ -242,6 +343,22 @@ const dummy_ethtoolops: bindings::ethtool_ops = bindings::ethtool_ops {
 // 	dev->max_mtu = 0;
 // }
 
+// https://elixir.free-electrons.com/linux/v4.7/source/include/linux/etherdevice.h#L221
+#[inline]
+fn eth_random_addr(addr: *mut u8) {
+    bindings::get_random_bytes(addr as *mut c_void, ETH_ALEN);
+    *addr = *addr & 0xFE;           // Clear multicast bit
+    *addr = *addr | 0x02;           // Set local assignment bit (IEEE802)
+}
+
+// https://elixir.bootlin.com/linux/v4.9/source/include/linux/etherdevice.h#L261
+#[inline]
+fn eth_hw_addr_random(dev: *mut bindings::net_device) {
+    (*dev).addr_assign_type = NET_ADDR_RANDOM;
+    let mut byte = (*dev).dev_addr;
+    eth_random_addr(byte);
+}
+
 fn dummy_setup(dev: *mut bindings::net_device) {
     unsafe {
         bindings::ether_setup(dev);
@@ -258,10 +375,16 @@ fn dummy_setup(dev: *mut bindings::net_device) {
         (*dev).features |= NETIF_F_GSO_ENCAP_ALL;
         (*dev).hw_features |= (*dev).features;
         (*dev).hw_enc_features |= (*dev).features;
-        bindings::eth_hw_addr_random(dev);
+        // This is a static inline function and thus is not in bindings
+        // Therefore it is re-implemented here
+        eth_hw_addr_random(dev);
         (*dev).min_mtu = 0;
         (*dev).max_mtu = 0;
     }
+}
+
+unsafe extern "C" fn setup_callback(dev: *mut bindings::net_device) {
+    dummy_setup(dev);
 }
 
 // static int dummy_validate(struct nlattr *tb[], struct nlattr *data[],
@@ -299,11 +422,22 @@ fn dummy_setup(dev: *mut bindings::net_device) {
 // };
 
 // TODO: not sure about read_mostly in the original C
-// Also, skip validate because nla_len does not exist in bindings, and validate is not an important function
+// Skip validate because nla_len does not exist in bindings, and validate is not an important function
+
+const lhead: bindings::list_head = bindings::list_head {
+    next: 0 as *mut bindings::list_head,
+    prev: 0 as *mut bindings::list_head,
+};
+
+// Do NOT try to initialize without default(), there are many weird fields
+const policy: bindings::nla_policy = Default::default();
+const mut_policy: *mut bindings::nla_policy = &mut policy;
+
 const dummy_link_ops: bindings::rtnl_link_ops = bindings::rtnl_link_ops {
-    // kind: DRV_NAME,
-    setup: dummy_setup,
-    // Ignore validate
+    kind: DRV_NAME,
+    setup: Some(setup_callback),
+    // Ignore validate because nla_len does not exist in bindings
+    // Also, validate isn't important
     // validate: dummy_validate,
     alloc: None,
     changelink: None,
@@ -319,24 +453,21 @@ const dummy_link_ops: bindings::rtnl_link_ops = bindings::rtnl_link_ops {
     get_size: None,
     get_slave_size: None,
     get_xstats_size: None,
-    kind: None,
-    list: None,
-    maxtype: None,
-    netns_refund: None,
+    list: lhead,
+    maxtype: 0,
+    netns_refund: false,
     newlink: None,
-    policy: None,
-    priv_size: None,
+    policy: mut_policy,
+    priv_size: 0,
     slave_changelink: None,
-    slave_maxtype: None,
-    slave_policy: None,
+    slave_maxtype: 0,
+    slave_policy: mut_policy,
     validate: None,
 };
 
 // /* Number of dummy devices to be set up by this module. */
 // module_param(numdummies, int, 0);
 // MODULE_PARM_DESC(numdummies, "Number of dummy pseudo devices");
-
-// TODO: Not sure how to handle
 
 // static int __init dummy_init_one(void)
 // {
@@ -359,7 +490,12 @@ const dummy_link_ops: bindings::rtnl_link_ops = bindings::rtnl_link_ops {
 // }
 
 fn dummy_init_one() -> i32 {
-    let dev_dummy = unsafe { bindings::alloc_netdev(0, "dummy%d", bindings::NET_NAME_ENUM, dummy_setup) };
+    // alloc_netdev is a #define macro and thus not in bindings
+    // However, it's just an alias for a call to alloc_netdev_mqs
+    // Source: https://elixir.bootlin.com/linux/v4.4/source/include/linux/netdevice.h#L3407
+    // BINDINGS::NET_NAME_ENUM is defined as u32 but alloc_netdev_mqs expects u8
+    // The cast is fine since the actual value is 1
+    let dev_dummy = unsafe { bindings::alloc_netdev_mqs(0, DRV_NAME, bindings::NET_NAME_ENUM as u8, Some(setup_callback), 1, 1) };
     if dev_dummy.is_null() {
         return -(bindings::ENOMEM as i32);
     }
@@ -450,7 +586,7 @@ impl kernel::Module for Dummy {
 module! {
     type: Dummy,
     name: "rust_dummy",
-    author: "Jesse Wei and Madison Lester"
+    author: "Jesse Wei and Madison Lester",
     description: "Rust dummy network driver",
     license: "GPL v2",
 }
