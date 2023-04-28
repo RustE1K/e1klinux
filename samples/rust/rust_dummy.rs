@@ -1,3 +1,16 @@
+/**
+ * A mostly faithful Rust port of https://github.com/torvalds/linux/blob/master/drivers/net/dummy.c
+ * Authors: Jesse Wei and Madison Lester
+ * Note 1: Original C code from the link above is left as comments in this file for reference.
+ * Note 2: After generating rust/bindings/bindings_generated.rs with an initial make, must go to
+ * pub struct rtnl_link_ops
+ * (should be around line 68485)
+ * and comment out the following fields:
+ *      pub policy: *const nla_policy,
+ *      pub slave_policy: *const nla_policy,
+ * This is reasonable because these fields are not used in the original C code.
+ */
+
 #[allow(unused)]
 
 mod lib;
@@ -524,6 +537,8 @@ fn dummy_init_one() -> i32 {
     0
 }
 
+// This is put in fn init (which is the Rust equivalent of __init)
+
 // static int __init dummy_init_module(void)
 // {
 // 	int i, err = 0;
@@ -590,6 +605,8 @@ impl kernel::Module for Dummy {
 // {
 // 	rtnl_link_unregister(&dummy_link_ops);
 // }
+
+// Don't need
 
 // module_init(dummy_init_module);
 // module_exit(dummy_cleanup_module);
